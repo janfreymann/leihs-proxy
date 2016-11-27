@@ -1,0 +1,20 @@
+{
+  "name": "lx-packages",
+  "version": "0.0.1",
+  "description": "Extension to track items belonging to a package from Leihs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.15.2",
+    "express": "^4.14.0",
+    "harmon-binary": "^1.1.1-a",
+    "http-proxy": "^1.15.2",
+    "mustache": "^2.3.0",
+    "mysql": "^2.12.0",
+    "request": "^2.79.0"
+  }
+}
