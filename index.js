@@ -22,9 +22,11 @@ var customscript = `
 
 <script>
 console.log("searching for packages...");
-var modal = '<div aria-hidden="false" class="modal fade ui-modal medium in ui-shown"><h2>Check package components:</h2><ul id="mht_package_list"></ul></div>';
+var modal = '<div id="mhtPackageDialog" aria-hidden="false" class="modal fade ui-modal medium in ui-shown"><h2>Check package components:</h2><form id="packageForm"><ul id="mht_package_list"></ul><button type="button" onClick="checkPackageCodes();">Check & Close</button></form></div>';
 
 var showModal = false;
+
+var packageCodes = [];
 
 $( ".col2of10.line-col.text-align-center").each(function(i, obj) {
     var item_id = $(obj).children().first().text();
@@ -36,11 +38,16 @@ $( ".col2of10.line-col.text-align-center").each(function(i, obj) {
 
       if(data.length > 0) {
 
-        if(!showModal) { $( "body" ).append(modal); showModal = true; }
+        if(!showModal) { 
+          $('.button.green').hide();
+          $( "body" ).append(modal); 
+          showModal = true; 
+        }
 
          for(var k in data) {
         // mht_package_list
-        $('#mht_package_list').append("<li>inventory code " + data[k] + "</lid>");
+        $('#mht_package_list').append('<li id="li' + data[k].inventory_code + '">' + data[k].product + '<input type="text" id="ic' + data[k].inventory_code + '"></input></li>');        
+        packageCodes.push(data[k].inventory_code);
       }
       }
 
@@ -48,7 +55,33 @@ $( ".col2of10.line-col.text-align-center").each(function(i, obj) {
     });
 });
 
-
+function checkPackageCodes() {
+  if(packageCodes.length == 0) {
+    $('#mhtPackageDialog').hide();
+    console.log("hide package dialog.");
+    $('.button.green').show();
+  }
+  else {
+    var canClose = true;
+    for(var i in packageCodes) {
+      var k = packageCodes[i];
+      if($('#ic' + k).val() == k) {
+        $('#ic' + k).hide();
+        $('#li' + k).append('<i class="fa fa-check margin-right-m"></i>')
+      }
+      else {
+        console.log("ic" + k + " does not match with " + k);
+        $('#ic' + k).val('?');
+        canClose = false;
+      }
+    }
+    if(canClose) {
+      $('#mhtPackageDialog').hide();
+      $('.button.green').show();
+      console.log("hide package dialog.");
+    }  
+  }
+}
 
 
 </script>
@@ -110,19 +143,20 @@ app.get('/mht_get_package_children', function(req, res) {
     else {
       if(rows.length > 0) {
         var package_id = rows[0].id;
-        var query2 = "SELECT inventory_code FROM items WHERE parent_id = " + connection.escape(package_id) + ";";
+        var query2 = "SELECT inventory_code, model_id FROM items WHERE parent_id = " + connection.escape(package_id) + ";";
           connection.query(query2, function (err, rows, fields) {
-            res.writeHead(200, {"Content-Type": "application/json"}); 
+            
             if(err) {
               console.log("mysql error: " + err);
+              res.writeHead(200, {"Content-Type": "application/json"}); 
               res.end(JSON.stringify([]));
             }
             else {
               var id_list = [];
               for(var k in rows) {
-                id_list.push(rows[k].inventory_code);
+                id_list.push({inventory_code : rows[k].inventory_code, model_id : rows[k].model_id});                
               }
-              res.end(JSON.stringify(id_list));
+              productChain(id_list, [], res);
             }
           });
       }
@@ -131,6 +165,29 @@ app.get('/mht_get_package_children', function(req, res) {
   
  
 });
+
+function productChain(id_list, result_list, res) {
+  if(id_list.length == 0) { //done
+    res.writeHead(200, {"Content-Type": "application/json"}); 
+    res.end(JSON.stringify(result_list));
+  }
+  else {
+    var idItem = id_list.pop();
+    var query = "SELECT product FROM models WHERE id = " + connection.escape(idItem.model_id) + " LIMIT 1;";
+    connection.query(query, function(err, rows, fields) {
+      if((err) || (rows.length == 0)) {
+        console.log("mysql error: " + err);
+        res.writeHead(200, {"Content-Type": "application/json"}); 
+        res.end(JSON.stringify([]));
+      }
+      else {
+        idItem.product = rows[0].product;
+        result_list.push(idItem);
+        productChain(id_list, result_list, res);
+      }
+    });
+  }
+}
 
 app.all('/*', function(req, res) {
   console.log("redirecting " + req.url);
