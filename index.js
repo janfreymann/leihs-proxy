@@ -2,10 +2,11 @@ var express = require('express')
 var app = express();
 var httpProxy = require('http-proxy');
 var leihsProxy = httpProxy.createProxyServer();
-
-var serverLeihs = 'http://127.0.0.1:3000';
-
 var config = require('./config');
+
+var serverLeihs = config.SERVER_LEIHS;
+
+
 var mysql = require('mysql');
 var connection = mysql.createConnection({
     host: '127.0.0.1',
@@ -360,7 +361,7 @@ app.post('/*', function(req, res) {
 
 
 
-app.listen(8888, function () {
+app.listen(config.PROXY_PORT, function () {
   console.log('Leihs proxy app listening on port 8888!')
 })
 
