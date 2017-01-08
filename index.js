@@ -92,6 +92,8 @@ function checkPackageCodes() {
 var handoverscript  = ` 
 <script>
 
+var showModal = false;
+
 var packageCodes = [];
 var replacedHtml = '';
 
@@ -99,22 +101,22 @@ $(document).ready(function(){
   console.log("hand over proxy script at work.");
   $('.button.green').click(function() {
     setTimeout(function() {
-    $('.button.green').hide();
-    replacedHtml = $('.padding-bottom-m.margin-bottom-m.no-last-child-margin').html();
-   // $('.row.margin-top-s.padding-horizontal-l').append();
-   $('.padding-bottom-m.margin-bottom-m.no-last-child-margin').html('<form id="packageForm"><ul id="mht_package_list"></ul><button type="button" style="margin-top:20px" onClick="checkPackageCodes();">Check & Close</button></form>');
     $("input[id^=assigned-item-]").each(function(i, obj) {
       var item_id = $(obj).val();
       
       if(item_id.length > 0) {
           $.get( "/mht_get_package_children?id=" + item_id, function( data ) {
-        console.log("Result for item " + item_id + ": " + JSON.stringify(data));
+        console.log("Result for item " + item_id + ": " + JSON.stringify(data))
 
-        // example: [{"inventory_code":"2","model_id":2,"product":"ModelB"},{"inventory_code":"1","model_id":1,"product":"ModelA"}] hand_over:741:9
-
-        // row margin-top-s padding-horizontal-l
-        
+            
         for(var k in data) {
+          if(!showModal) {
+            showModal = true;
+            $('.button.green').hide();
+            replacedHtml = $('.padding-bottom-m.margin-bottom-m.no-last-child-margin').html();
+            $('.padding-bottom-m.margin-bottom-m.no-last-child-margin').html('<form id="packageForm"><ul id="mht_package_list"></ul><button type="button" style="margin-top:20px" onClick="checkPackageCodes();">Check & Close</button></form>');
+          }
+
           $('#mht_package_list').append('<li id="li' + data[k].inventory_code + '">' + data[k].product + '<input type="text" id="ic' + data[k].inventory_code + '"></input></li>');        
           packageCodes.push(data[k].inventory_code);
         }
@@ -138,7 +140,11 @@ $(document).ready(function(){
 });
 
 function restoreHtml() {
-   $('.padding-bottom-m.margin-bottom-m.no-last-child-margin').html(replacedHtml);
+  if(showModal) {
+    $('.padding-bottom-m.margin-bottom-m.no-last-child-margin').html(replacedHtml);
+    showModal = false;
+  }
+   
 }
 function closedModal() {
  console.log("closed modal!");
