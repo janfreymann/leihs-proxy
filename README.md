@@ -5,7 +5,7 @@ used to check package contents during hand over and take back. All barcodes of p
 
 ## Installation
 
-sudo apt-get install nodejs
+`sudo apt-get install nodejs`
 
 `git clone https://github.com/janfreymann/leihs-proxy/`
 
