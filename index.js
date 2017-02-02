@@ -68,13 +68,13 @@ function checkPackageCodes() {
     var canClose = true;
     for(var i in packageCodes) {
       var k = packageCodes[i];
-      if($('#ic' + k).val() == k) {
+      if($.inArray($('#ic' + k).val(), packageCodes)) {
         $('#ic' + k).hide();
-        $('#li' + k).append('<i class="fa fa-check margin-right-m"></i>')
+        $('#li' + k).append('<i class="fa fa-check margin-right-m"></i> (' + k + ')');
       }
       else {
         console.log("ic" + k + " does not match with " + k);
-        $('#ic' + k).val('?');
+        $('#ic' + k).val('');
         canClose = false;
       }
     }
@@ -163,13 +163,13 @@ function checkPackageCodes() {
     var canClose = true;
     for(var i in packageCodes) {
       var k = packageCodes[i];
-      if($('#ic' + k).val() == k) {
+      if($.inArray($('#ic' + k).val(), packageCodes)) {
         $('#ic' + k).hide();
-        $('#li' + k).append('<i class="fa fa-check margin-right-m"></i>')
+        $('#li' + k).append('<i class="fa fa-check margin-right-m"></i> (' + k + ')');
       }
       else {
         console.log("ic" + k + " does not match with " + k);
-        $('#ic' + k).val('?');
+        $('#ic' + k).val('');
         canClose = false;
       }
     }
@@ -191,10 +191,9 @@ simpleselect.func = function (node) {
   var rs = node.createReadStream();
   var ws = node.createWriteStream({outer: false});
 
+  
   rs.pipe(ws, {end: false});
 
-  
-  
   // When the read stream has ended, attach our style to the end
   rs.on('end', function(){
     ws.end(customscript);
@@ -204,12 +203,10 @@ simpleselect.func = function (node) {
 
 simpleselect_handover.query = 'body';
 simpleselect_handover.func = function(node) {
-    var rs = node.createReadStream();
+  var rs = node.createReadStream();
   var ws = node.createWriteStream({outer: false});
 
   rs.pipe(ws, {end: false});
-
-  
   
   // When the read stream has ended, attach our style to the end
   rs.on('end', function(){
@@ -238,7 +235,8 @@ var only2 = function(middleware) {
       var tmp = req.path.split('/');
       var endswith = tmp.pop();
       if((endswith == 'hand_over') && (req.method == 'GET')) {
-        return middleware(req, res, next);
+       	 console.log("hand over URL detected.");
+         return middleware(req, res, next);
       }
       else {
         return next();
@@ -246,8 +244,8 @@ var only2 = function(middleware) {
     };
 };
 
-var harmon = require('harmon-binary')([], selects);
-var harmon2 = require('harmon-binary')([], selects2);
+var harmon = require('harmon')([], selects);
+var harmon2 = require('harmon')([], selects2);
 
 app.use(only(harmon)); //take back
 app.use(only2(harmon2)); //hand over
@@ -318,50 +316,11 @@ function productChain(id_list, result_list, res) {
 app.all('/*', function(req, res) {
   console.log("redirecting " + req.url);
 
- // if((req.method == "GET") && (req.url.match('mht_get_package')))
   leihsProxy.web(req, res, {target : serverLeihs});
 });
-
 //var bodyParser = require('body-parser')
-
-/*var proxy = require('express-http-proxy');
-
-app.use('/', proxy('127.0.0.1:3000', {
-  intercept: function(rsp, data, req, res, callback) {
-    // rsp - original response from the target
-    //data = JSON.parse(data.toString('utf8'));
-    console.log('intercept');
-    callback(null, data);
-  }
-}));*/
-
-/*app.get('/', function (req, res) {
-  res.end('<h1>Leihs Proxy</h1><iframe src="http://127.0.0.1:3000"></iframe>');
-});*/
-
-/*app.use(bodyParser());
-
-var request = require('request');
-app.get('/*', function(req,res) {
-  //modify the url in any way you want
-  var newurl = 'http://127.0.0.1:3000' + req.url;
-  request(newurl).pipe(res);
-});
-
-app.post('/*', function(req, res) {
-	var newurl = 'http://127.0.0.1:3000' + req.url;
-	console.log("post data: " + JSON.stringify(req.body));
-  
-  request.post({
-  url:     newurl,
-  form:    req.body,
-	}).pipe(res);
-});
-*/
-
-
 
 app.listen(config.PROXY_PORT, function () {
   console.log('Leihs proxy app listening on port 8888!')
-})
+});
 
