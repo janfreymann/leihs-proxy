@@ -25,7 +25,7 @@ var customscript = `
 
 <script>
 console.log("searching for packages...");
-var modal = '<div id="mhtPackageDialog" aria-hidden="false" class="modal fade ui-modal medium in ui-shown"><h2>Check package components:</h2><form id="packageForm"><ul id="mht_package_list"></ul><button type="button" onClick="checkPackageCodes();">Check & Close</button></form></div>';
+var modal = '<div id="mhtPackageDialog" aria-hidden="false" class="modal fade ui-modal medium in ui-shown"><h2>Check package components:</h2><form id="packageForm" onsubmit="return false;"><input style=" border:solid 2px gray; margin-bottom: 10px;" id="check_barcode" value="" width=40><ul id="mht_package_list"></ul><button type="button" onClick="checkPackageCodes();">Check & Close</button></form></div>';
 
 var showModal = false;
 
@@ -49,9 +49,13 @@ $( ".col2of10.line-col.text-align-center").each(function(i, obj) {
 
          for(var k in data) {
         // mht_package_list
-        $('#mht_package_list').append('<li id="li' + data[k].inventory_code + '">' + data[k].product + '<input type="text" id="ic' + data[k].inventory_code + '"></input></li>');        
+        $('#mht_package_list').append('<li id="li' + data[k].inventory_code + '">' + data[k].product + '</li>');        
         packageCodes.push(data[k].inventory_code);
       }
+        $("#packageForm").submit(function() {
+            checkPackageCodes();
+            return false; 
+          });
       }
 
      
@@ -66,17 +70,24 @@ function checkPackageCodes() {
   }
   else {
     var canClose = true;
-    for(var i in packageCodes) {
-      var k = packageCodes[i];
-      if($.inArray($('#ic' + k).val(), packageCodes)) {
-        $('#ic' + k).hide();
-        $('#li' + k).append('<i class="fa fa-check margin-right-m"></i> (' + k + ')');
-      }
-      else {
-        console.log("ic" + k + " does not match with " + k);
-        $('#ic' + k).val('');
-        canClose = false;
-      }
+     var k = $("#check_barcode").val();
+    if(typeof k == 'undefined') {
+       $("#check_barcode").val("");
+       return;
+    }
+    if($.inArray(k, packageCodes) != -1) {
+       $('#li' + k).append('<i class="fa fa-check margin-right-m"></i> (' + k + ')');
+       //remove element from array:
+       for(var i = packageCodes.length - 1; i >= 0; i--) {
+          if(packageCodes[i] == k) {
+            packageCodes.splice(i, 1);
+          }
+       }
+       $("#check_barcode").val("");
+       if(packageCodes.length > 0) canClose = false;
+    }
+    else {
+      canClose = false;
     }
     if(canClose) {
       $('#mhtPackageDialog').hide();
@@ -115,11 +126,16 @@ $(document).ready(function(){
             showModal = true;
             $('.button.green').hide();
             replacedHtml = $('.padding-bottom-m.margin-bottom-m.no-last-child-margin').html();
-            $('.padding-bottom-m.margin-bottom-m.no-last-child-margin').html('<form id="packageForm"><ul id="mht_package_list"></ul><button type="button" style="margin-top:20px" onClick="checkPackageCodes();">Check & Close</button></form>');
+            $('.padding-bottom-m.margin-bottom-m.no-last-child-margin').html('<form onsubmit="return false;" id="packageForm"><input style=" border:solid 2px gray; margin-bottom: 10px;" id="check_barcode" value="" width=40></input><ul id="mht_package_list"></ul><button type="button" style="margin-top:20px" onClick="checkPackageCodes();">Check & Close</button></form>');
           }
 
-          $('#mht_package_list').append('<li id="li' + data[k].inventory_code + '">' + data[k].product + '<input type="text" id="ic' + data[k].inventory_code + '"></input></li>');        
+          $('#mht_package_list').append('<li id="li' + data[k].inventory_code + '">' + data[k].product + '</li>');        
           packageCodes.push(data[k].inventory_code);
+
+          $("#packageForm").submit(function() {
+            checkPackageCodes();
+            return false; 
+          });
         }
        });
       }   
@@ -161,17 +177,24 @@ function checkPackageCodes() {
   }
   else {
     var canClose = true;
-    for(var i in packageCodes) {
-      var k = packageCodes[i];
-      if($.inArray($('#ic' + k).val(), packageCodes)) {
-        $('#ic' + k).hide();
-        $('#li' + k).append('<i class="fa fa-check margin-right-m"></i> (' + k + ')');
-      }
-      else {
-        console.log("ic" + k + " does not match with " + k);
-        $('#ic' + k).val('');
-        canClose = false;
-      }
+    var k = $("#check_barcode").val();
+    if(typeof k == 'undefined') {
+       $("#check_barcode").val("");
+       return;
+    }
+    if($.inArray(k, packageCodes) != -1) {
+       $('#li' + k).append('<i class="fa fa-check margin-right-m"></i> (' + k + ')');
+       //remove element from array:
+       for(var i = packageCodes.length - 1; i >= 0; i--) {
+          if(packageCodes[i] == k) {
+            packageCodes.splice(i, 1);
+          }
+       }
+       $("#check_barcode").val("");
+       if(packageCodes.length > 0) canClose = false;
+    }
+    else {
+      canClose = false;
     }
     if(canClose) {
       restoreHtml();
