@@ -30,42 +30,96 @@ var modal = '<div id="mhtPackageDialog" aria-hidden="false" class="modal fade ui
 var showModal = false;
 
 var packageCodes = [];
+var parentIDs = {};
 
-$( ".col2of10.line-col.text-align-center").each(function(i, obj) {
-    var item_id = $(obj).children().first().text();
-    var item_number = parseInt(item_id); 
-    console.log("ajax url: " + "/mht_get_package_children?id=" + item_number);
-    
-    $.get( "/mht_get_package_children?id=" + item_id, function( data ) {
-      console.log("Result: " + JSON.stringify(data));
+var itemVisible = {};
 
-      if(data.length > 0) {
+$(document).ready(function(){
+    $( ".col2of10.line-col.text-align-center").each(function(i, obj) {
+      var item_id = $(obj).children().first().text();
+      //$(this).parent().find(":checkbox"); 
+      
+      var item_number = parseInt(item_id); 
+      console.log("ajax url: " + "/mht_get_package_children?id=" + item_number);
+      
+      $.get( "/mht_get_package_children?id=" + item_id, function( data ) {
+        console.log("Result: " + JSON.stringify(data));
 
-        if(!showModal) { 
-          $('.button.green').hide();
-          $( "body" ).append(modal); 
-          showModal = true; 
-        }
+        if(data.length > 0) {
 
-         for(var k in data) {
-        // mht_package_list
-        $('#mht_package_list').append('<li id="li' + data[k].inventory_code + '">' + data[k].product + '</li>');        
-        packageCodes.push(data[k].inventory_code);
-      }
-        $("#packageForm").submit(function() {
-            checkPackageCodes();
-            return false; 
-          });
-      }
+          if(!showModal) { 
+            $('.button.green').hide();
+            $( "body" ).append(modal); 
+            showModal = true; 
+          }
 
-     
+          for(var k in data) {
+            // mht_package_list
+            $('#mht_package_list').append('<li id="li' + data[k].inventory_code + '">' + data[k].product + '</li>');        
+            packageCodes.push(data[k].inventory_code);
+            parentIDs[data[k].inventory_code] = item_id;
+          }
+          $("#packageForm").submit(function() {
+              checkPackageCodes();
+              return false; 
+            });
+        }   
+      });
+  });
+
+  //check checkboxes periodically, update modal view:
+
+  setInterval(function() {
+    var willTakeBack = {};
+    $( ".col2of10.line-col.text-align-center").each(function(i, obj) {
+      var item_id = $(obj).children().first().text();
+      willTakeBack[item_id] = $(this).parent().find(":checkbox").is(":checked");
     });
+
+    for(var i  = 0; i < packageCodes.length; i++) {
+      if(willTakeBack[parentIDs[packageCodes[i]]]) {
+        $('#li' + packageCodes[i]).show();
+        itemVisible[packageCodes[i]] = true;
+      }
+      else {
+        $('#li' + packageCodes[i]).hide();
+        itemVisible[packageCodes[i]] = false;
+      }
+    }
+    checkPackageCodesAuto();
+  }, 500)
 });
+function checkPackageCodesAuto() {
+  if(packageCodes.length == 0) {
+    $('#mhtPackageDialog').hide();
+    $('.button.green').show();
+  }
+  else {
+    canClose = true;
+    if(packageCodes.length > 0) { //check if remaining package items are visible (will be borrowed)
+      for(var i = 0; i < packageCodes.length; i++) {
+        if(itemVisible[packageCodes[i]]) {          
+           canClose = false; break; 
+          }
+      }
+    }
+    //else: canClose stays true
+
+
+    if(canClose) {
+      $('#mhtPackageDialog').hide();
+      $('.button.green').show();
+    }  
+    else {
+      $('#mhtPackageDialog').show();
+      $('.button.green').hide();
+    }
+  }
+}
 
 function checkPackageCodes() {
   if(packageCodes.length == 0) {
     $('#mhtPackageDialog').hide();
-    console.log("hide package dialog.");
     $('.button.green').show();
   }
   else {
@@ -84,16 +138,26 @@ function checkPackageCodes() {
           }
        }
        $("#check_barcode").val("");
-       if(packageCodes.length > 0) canClose = false;
     }
-    else {
-      canClose = false;
+
+    if(packageCodes.length > 0) { //check if remaining package items are visible (will be borrowed)
+      for(var i = 0; i < packageCodes.length; i++) {
+        if(itemVisible[packageCodes[i]]) {          
+           canClose = false; break; 
+          }
+      }
     }
+    //else: canClose stays true
+
+
     if(canClose) {
       $('#mhtPackageDialog').hide();
       $('.button.green').show();
-      console.log("hide package dialog.");
     }  
+    else {
+      $('#mhtPackageDialog').show();
+      $('.button.green').hide();
+    }
   }
 }
 
@@ -114,30 +178,39 @@ $(document).ready(function(){
   $('.button.green').click(function() {
     setTimeout(function() {
     $("input[id^=assigned-item-]").each(function(i, obj) {
-      var item_id = $(obj).val();
-      
-      if(item_id.length > 0) {
-          $.get( "/mht_get_package_children?id=" + item_id, function( data ) {
-        console.log("Result for item " + item_id + ": " + JSON.stringify(data))
 
-            
-        for(var k in data) {
-          if(!showModal) {
-            showModal = true;
-            $('.button.green').hide();
-            replacedHtml = $('.padding-bottom-m.margin-bottom-m.no-last-child-margin').html();
-            $('.padding-bottom-m.margin-bottom-m.no-last-child-margin').html('<form onsubmit="return false;" id="packageForm"><input style=" border:solid 2px gray; margin-bottom: 10px;" id="check_barcode" value="" width=40></input><ul id="mht_package_list"></ul><button type="button" style="margin-top:20px" onClick="checkPackageCodes();">Check & Close</button></form>');
+      //line row focus-hover-thin green
+      var willBorrow= $(this).parent().parent().parent().find(":checkbox").is(":checked");
+
+      if(willBorrow) { 
+        var item_id = $(obj).val();
+        console.log("will take back " + item_id + ": " + willBorrow);
+        
+        if(item_id.length > 0) {
+            $.get( "/mht_get_package_children?id=" + item_id, function( data ) {
+          console.log("Result for item " + item_id + ": " + JSON.stringify(data))
+
+              
+          for(var k in data) {
+            if(!showModal) {
+              showModal = true;
+              $('.button.green').hide();
+              replacedHtml = $('.padding-bottom-m.margin-bottom-m.no-last-child-margin').html();
+              $('.padding-bottom-m.margin-bottom-m.no-last-child-margin').html('<form onsubmit="return false;" id="packageForm"><input style=" border:solid 2px gray; margin-bottom: 10px;" id="check_barcode" value="" width=40></input><ul id="mht_package_list"></ul><button type="button" style="margin-top:20px" onClick="checkPackageCodes();">Check & Close</button></form>');
+            }
+
+            $('#mht_package_list').append('<li id="li' + data[k].inventory_code + '">' + data[k].product + '</li>');        
+            packageCodes.push(data[k].inventory_code);
+
+            $("#packageForm").submit(function() {
+              checkPackageCodes();
+              return false; 
+            });
           }
+        
 
-          $('#mht_package_list').append('<li id="li' + data[k].inventory_code + '">' + data[k].product + '</li>');        
-          packageCodes.push(data[k].inventory_code);
-
-          $("#packageForm").submit(function() {
-            checkPackageCodes();
-            return false; 
-          });
-        }
        });
+       }
       }   
     });
 
